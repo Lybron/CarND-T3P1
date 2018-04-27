@@ -175,13 +175,13 @@ int main() {
   vector<double> map_waypoints_dy;
 
   // Waypoint map to read from
-  string map_file_ = "../data/highway_map.csv";
+  string map_file_ = "data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
 
   ifstream in_map_(map_file_.c_str(), ifstream::in);
 
-  string line;
+  string line = "";
   while (getline(in_map_, line)) {
   	istringstream iss(line);
   	double x;
@@ -292,7 +292,7 @@ int main() {
             }
 
             // In Frenet, add evenly spaced spoints ahead of the starting reference
-            vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y); // replace 1 with lane
+            vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
             vector<double> next_wp1 = getXY(car_s+60, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
             vector<double> next_wp2 = getXY(car_s+90, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
@@ -308,7 +308,6 @@ int main() {
 
             for(int i = 0; i < ptsx.size(); i++)
             {
-
               // shift car reference angle to 0 degrees
               double shift_x = ptsx[i]-ref_x;
               double shift_y = ptsy[i]-ref_y;
@@ -316,19 +315,6 @@ int main() {
               ptsx[i] = (shift_x * cos(0-ref_yaw)-shift_y*sin(0-ref_yaw));
               ptsy[i] = (shift_x * sin(0-ref_yaw)+shift_y*cos(0-ref_yaw));
 
-              // double dist_inc = 0.5;
-              // 1.
-              // next_x_vals.push_back(car_x+(dist_inc*i)*cos(deg2rad(car_yaw)));
-              // next_y_vals.push_back(car_y+(dist_inc*i)*sin(deg2rad(car_yaw)));
-
-              // 2.
-              // double next_s = car_s+(i+1)*dist_inc;
-              // double next_d = 6;
-              //
-              // vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              //
-              // next_x_vals.push_back(xy[0]);
-              // next_y_vals.push_back(xy[1]);
             }
 
             // create spline
@@ -352,7 +338,6 @@ int main() {
 
             // Fill up the rest of our path planner after filling it with the previous points
             // Here we will always output 50 points
-
             for (int i = 1; i <= 50-previous_path_x.size(); i++) {
               double N = (target_dist/(0.02*ref_vel/2.24));
               double x_point = x_add_on+(target_x)/N;
