@@ -290,20 +290,23 @@ int main() {
                   too_close = true;
                   switch(lane) {
                     case 0:
+                      // in innermost lane so we can only change langes right
                       if (rightLaneOpen) lane += 1;
                       break;
                     case 1:
                       // if left lane is free, go left
-                      if (leftLaneOpen) lane -= 1;
-                      // if right lane free, go right
-                      if (rightLaneOpen) lane += 1;
+                      if (leftLaneOpen) {
+                         lane -= 1;
+                      } else if (rightLaneOpen) {
+                        // if right lane free, go right
+                         lane += 1;
+                      }
                       break;
                     case 2:
+                      // in outermost lane so we can only go left
                       if (leftLaneOpen) lane -= 1;
                       break;
                     default:
-                      // if no lanes are open and there is a vehicle is ahead
-                      // stay in the current lane and maintain a safe speed and distance
                       break;
                   }
                 }
@@ -319,9 +322,10 @@ int main() {
               }
             }
 
-            // Add a non-linear component to the target velocity calculation
-            // penalize driving close to or above the reference velocity
+            // Apply a non-linear factor to the target velocity calculation
+            // penalize driving close to or above the reference velocity, or close to other vehicles
             // penalize driving significantly slower than the reference velocity
+            // prevent dividing into 0.0
             double accel_factor = ref_vel < 0.001 ? 0.0 : (ref_vel/47.5);
             if (too_close) {
               ref_vel -= (0.224 * (1.0 + accel_factor));
