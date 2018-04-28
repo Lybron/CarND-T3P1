@@ -1,5 +1,7 @@
 # Path Planning
 
+[Path Planning Output](https://youtu.be/tE8ldKE8lbI)
+
 ## Minimizing Jerk and Acceleration
 
 The car builds a trajectory based on a list of desired waypoints. In order to simplify the calculation of this trajectory, waypoints are converted to Frenet coordinates, then new waypoints are calculated along the path that would result in the desired velocity. In order to minimize jerk and acceleration, the trajectory is smoothed using splines.
