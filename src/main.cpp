@@ -309,8 +309,8 @@ int main() {
                 }
               } else {
                 // monitor a safe range between the car and detected vehicles
-                // use an absolute value greater than 30 meters ahead and  10 meters behind as a threshold
-                bool isSafeRange = ((check_car_s - car_s) > 30) && ((check_car_s - car_s) > -10);
+                // use an absolute value greater than 30 meters ahead and  20 meters behind as a threshold
+                bool isSafeRange = ((check_car_s - car_s) > 30) || ((check_car_s - car_s) < -30);
 
                 // determine which lane the detected vehicle is in
                 // set which lane(s) is/are open
