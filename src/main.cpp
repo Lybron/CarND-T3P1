@@ -309,8 +309,8 @@ int main() {
                 }
               } else {
                 // monitor a safe range between the car and detected vehicles
-                // use an absolute value greater than 30 meters (in front and behind) as a threshold
-                bool isSafeRange = abs(check_car_s - car_s) > 30;
+                // use an absolute value greater than 30 meters ahead and  10 meters behind as a threshold
+                bool isSafeRange = ((check_car_s - car_s) > 30) && ((check_car_s - car_s) > -10);
 
                 // determine which lane the detected vehicle is in
                 // set which lane(s) is/are open
@@ -319,10 +319,11 @@ int main() {
               }
             }
 
+            double accel_factor = ref_vel < 0.001 ? 0.0 : (ref_vel/47.5);
             if (too_close) {
-              ref_vel -= 0.224 ; // Approx 5 m/s deceleration (0.224)
-            } else if (ref_vel < 49.5) {
-              ref_vel += .224;
+              ref_vel -= (0.224 * (1.0 + accel_factor));
+            } else if (ref_vel < 47.5) {
+              ref_vel += (0.2 * (1.0 - accel_factor));
             }
 
             // Waypoint Calculation
@@ -336,7 +337,7 @@ int main() {
             if (prev_size < 2) {
               // use 2 points that make the point tangent to the car
               double prev_car_x = car_x - cos(car_yaw);
-              double prev_car_y = car_y - cos(car_yaw);
+              double prev_car_y = car_y - sin(car_yaw);
 
               ptsx.push_back(prev_car_x);
               ptsx.push_back(car_x);
