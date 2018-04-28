@@ -201,7 +201,13 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  // start in lane 1
+  int lane = 1;
+
+  // target reference velocity
+  double ref_vel = 0.0; // 49.5; // mph
+
+  h.onMessage([&lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -244,16 +250,13 @@ int main() {
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
-            // start in lane 1
-            int lane = 1;
-
-            // target reference velocity
-            double ref_vel = 49.5; // mph
-
             int prev_size = previous_path_x.size();
 
             vector<double> ptsx;
             vector<double> ptsy;
+
+            // Flag proximity violation
+            bool too_close = false;
 
             // Sensor Fusion
             if (prev_size > 0) {
@@ -278,11 +281,17 @@ int main() {
                 if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
                   // Do some logic here; lower the reference velocity to avoid crashing into the car in front
                   // could also flag and attempt to change lanes
-                  ref_vel = 29.5; // mph
+                  // ref_vel = 29.5; // mph
 
-                  // too_close = true;
+                  too_close = true;
                 }
               }
+            }
+
+            if (too_close) {
+              ref_vel -= 0.224; // Approx 5 m/s deceleration
+            } else if (ref_vel < 49.5) {
+              ref_vel += .224;
             }
 
             // Waypoint Calculation
