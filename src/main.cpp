@@ -290,16 +290,16 @@ int main() {
                   too_close = true;
                   switch(lane) {
                     case 0:
-                      if (rightLaneOpen) lane = 1;
+                      if (rightLaneOpen) lane += 1;
                       break;
                     case 1:
                       // if left lane is free, go left
+                      if (leftLaneOpen) lane -= 1;
                       // if right lane free, go right
-                      if (leftLaneOpen) lane = 0;
-                      if (rightLaneOpen) lane = 2;
+                      if (rightLaneOpen) lane += 1;
                       break;
                     case 2:
-                      if (leftLaneOpen) lane = 1;
+                      if (leftLaneOpen) lane -= 1;
                       break;
                     default:
                       // if no lanes are open and there is a vehicle is ahead
@@ -309,8 +309,8 @@ int main() {
                 }
               } else {
                 // monitor a safe range between the car and detected vehicles
-                // use an absolute value greater than 30 meters ahead and  20 meters behind as a threshold
-                bool isSafeRange = ((check_car_s - car_s) > 30) || ((check_car_s - car_s) < -30);
+                // use an absolute value greater than 20 meters ahead and 30 meters behind as a threshold
+                bool isSafeRange = ((check_car_s - car_s) > 20) || ((check_car_s - car_s) < - 30);
 
                 // determine which lane the detected vehicle is in
                 // set which lane(s) is/are open
@@ -319,11 +319,14 @@ int main() {
               }
             }
 
+            // Add a non-linear component to the target velocity calculation
+            // penalize driving close to or above the reference velocity
+            // penalize driving significantly slower than the reference velocity
             double accel_factor = ref_vel < 0.001 ? 0.0 : (ref_vel/47.5);
             if (too_close) {
               ref_vel -= (0.224 * (1.0 + accel_factor));
             } else if (ref_vel < 47.5) {
-              ref_vel += (0.2 * (1.0 - accel_factor));
+              ref_vel += (0.2 * (1.0 - accel_factor) * 2);
             }
 
             // Waypoint Calculation
@@ -353,7 +356,7 @@ int main() {
 
               double ref_x_prev = previous_path_x[prev_size-2];
               double ref_y_prev = previous_path_y[prev_size-2];
-              ref_yaw = atan2(ref_y_prev, ref_x_prev);
+              ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
 
               // use two points to make the path tangent to the previous path's end point
               ptsx.push_back(ref_x_prev);
