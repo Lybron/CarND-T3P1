@@ -205,7 +205,7 @@ int main() {
   int lane = 1;
 
   // target reference velocity
-  double ref_vel = 0.0; // 49.5; // mph
+  double ref_vel = 0.0; // mph
 
   h.onMessage([&lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -258,6 +258,10 @@ int main() {
             // Flag proximity violation
             bool too_close = false;
 
+            // flag open lanes the car could possibly change to
+            bool leftLaneOpen = false;
+            bool rightLaneOpen = false;
+
             // Sensor Fusion
             if (prev_size > 0) {
               car_s = end_path_s;
@@ -265,34 +269,58 @@ int main() {
 
             // find ref_x to use
             for (int i = 0; i < sensor_fusion.size(); i++) {
-              // car is in my lane
-              float d = sensor_fusion[i][6];
-              if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
-                double vx = sensor_fusion[i][3];
-                double vy = sensor_fusion[i][4];
+              // check if detected traffic is in the same lane
+              float traffic_d = sensor_fusion[i][6];
 
-                double check_speed = sqrt(vx*vx+vy*vy);
-                double check_car_s = sensor_fusion[i][5];
+              double vx = sensor_fusion[i][3];
+              double vy = sensor_fusion[i][4];
 
-                // if using previous points, we can project traffic's s value outward in time
-                check_car_s +=((double)prev_size*0.02*check_speed);
+              double check_speed = sqrt(vx*vx+vy*vy);
+              double check_car_s = sensor_fusion[i][5];
 
-                // check s values greater than car's and s gap
+              // use previous points to calculate trajectory of detected traffic
+              check_car_s +=((double)prev_size*0.02*check_speed);
+
+              if (traffic_d < (2+4*lane+2) && traffic_d > (2+4*lane-2)) {
+
+                // check if traffic's projected path conflicts witht the car's
+                // and if the distance to the car ahead is less than 30 meters
                 if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
-                  // Do some logic here; lower the reference velocity to avoid crashing into the car in front
-                  // could also flag and attempt to change lanes
-                  // ref_vel = 29.5; // mph
-
+                  // if the car is coming within an unsafe range of vehicles ahead, slow down, and attempt to change lanes
                   too_close = true;
-                  if (lane > 0) {
-                    lane = 0;
+                  switch(lane) {
+                    case 0:
+                      if (rightLaneOpen) lane = 1;
+                      break;
+                    case 1:
+                      // if left lane is free, go left
+                      // if right lane free, go right
+                      if (leftLaneOpen) lane = 0;
+                      if (rightLaneOpen) lane = 2;
+                      break;
+                    case 2:
+                      if (leftLaneOpen) lane = 1;
+                      break;
+                    default:
+                      // if no lanes are open and there is a vehicle is ahead
+                      // stay in the current lane and maintain a safe speed and distance
+                      break;
                   }
                 }
+              } else {
+                // monitor a safe range between the car and detected vehicles
+                // use an absolute value greater than 30 meters (in front and behind) as a threshold
+                bool isSafeRange = abs(check_car_s - car_s) > 30;
+
+                // determine which lane the detected vehicle is in
+                // set which lane(s) is/are open
+                leftLaneOpen = (traffic_d < (2+4*(lane-1)+2) && traffic_d > (2+4*(lane-1)-2)) && isSafeRange;
+                rightLaneOpen = (traffic_d < (2+4*(lane+1)+2) && traffic_d > (2+4*(lane+1)-2)) && isSafeRange;
               }
             }
 
             if (too_close) {
-              ref_vel -= 0.224; // Approx 5 m/s deceleration
+              ref_vel -= 0.224 ; // Approx 5 m/s deceleration (0.224)
             } else if (ref_vel < 49.5) {
               ref_vel += .224;
             }
@@ -357,7 +385,6 @@ int main() {
 
               ptsx[i] = (shift_x * cos(0-ref_yaw)-shift_y*sin(0-ref_yaw));
               ptsy[i] = (shift_x * sin(0-ref_yaw)+shift_y*cos(0-ref_yaw));
-
             }
 
             // create spline
